@@ -6,7 +6,7 @@ client_id = ""
 scopes = "read_products,read_inventory,read_orders"
 
 [webhooks]
-api_version = "2025-10"
+api_version = "2026-07"
 
   # Handled by: /app/routes/webhooks.app.uninstalled.tsx
   [[webhooks.subscriptions]]
