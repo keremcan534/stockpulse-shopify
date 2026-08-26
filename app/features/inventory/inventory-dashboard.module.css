@@ -1,0 +1,122 @@
+.intro {
+  color: #616161;
+  margin: 0;
+  max-width: 760px;
+}
+
+.summaryGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-bottom: 20px;
+}
+
+.summaryCard {
+  background: linear-gradient(145deg, #ffffff 0%, #f7f8f8 100%);
+  border: 1px solid #e1e3e5;
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(31, 33, 36, 0.06);
+  min-height: 98px;
+  padding: 18px;
+}
+
+.summaryValue {
+  color: #202223;
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 0 0 6px;
+}
+
+.summaryLabel {
+  color: #616161;
+  font-size: 13px;
+  margin: 0;
+}
+
+.controls {
+  align-items: end;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(220px, 1fr) minmax(180px, 240px);
+  margin-bottom: 16px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field label {
+  color: #303030;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.field input,
+.field select {
+  background: #ffffff;
+  border: 1px solid #8a8a8a;
+  border-radius: 8px;
+  color: #202223;
+  font: inherit;
+  min-height: 38px;
+  padding: 8px 11px;
+}
+
+.field input:focus,
+.field select:focus {
+  border-color: #005bd3;
+  box-shadow: 0 0 0 2px rgba(0, 91, 211, 0.22);
+  outline: none;
+}
+
+.productCell {
+  display: grid;
+  gap: 2px;
+}
+
+.productTitle {
+  color: #202223;
+  font-weight: 600;
+}
+
+.variantTitle,
+.muted {
+  color: #6d7175;
+  font-size: 12px;
+}
+
+.emptyState {
+  align-items: center;
+  background: #f7f8f8;
+  border: 1px dashed #c9cccf;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: center;
+  min-height: 180px;
+  padding: 28px;
+  text-align: center;
+}
+
+.emptyState h2,
+.emptyState p {
+  margin: 0;
+}
+
+.footer {
+  color: #6d7175;
+  font-size: 12px;
+  margin: 14px 0 0;
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .controls {
+    grid-template-columns: 1fr;
+  }
+}
