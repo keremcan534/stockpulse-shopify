@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { describe, expect, it } from "vitest";
@@ -88,8 +88,9 @@ describe("InventoryDashboard", () => {
 
     await user.type(screen.getByLabelText("Search inventory"), "cap-old");
 
-    expect(screen.getByText("Old cap")).toBeInTheDocument();
-    expect(screen.queryByText("T-shirt")).not.toBeInTheDocument();
+    const inventory = within(screen.getByRole("region", { name: "Inventory list" }));
+    expect(inventory.getByText("Old cap")).toBeInTheDocument();
+    expect(inventory.queryByText("T-shirt")).not.toBeInTheDocument();
   });
 
   it("filters rows by inventory status", async () => {
@@ -101,8 +102,9 @@ describe("InventoryDashboard", () => {
       "dead-stock",
     );
 
-    expect(screen.getByText("Old cap")).toBeInTheDocument();
-    expect(screen.queryByText("T-shirt")).not.toBeInTheDocument();
+    const inventory = within(screen.getByRole("region", { name: "Inventory list" }));
+    expect(inventory.getByText("Old cap")).toBeInTheDocument();
+    expect(inventory.queryByText("T-shirt")).not.toBeInTheDocument();
   });
 
   it("distinguishes a store with no variants from filters with no matches", async () => {
@@ -133,7 +135,7 @@ describe("InventoryDashboard", () => {
         "Sales history is temporarily unavailable. Sales-based metrics are hidden.",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText("T-shirt")).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Inventory list" })).getByText("T-shirt")).toBeInTheDocument();
   });
 
   it("shows sales-derived cells as unavailable when the loader returns partial data", () => {

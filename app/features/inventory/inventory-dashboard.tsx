@@ -6,6 +6,7 @@ import type {
   InventoryStatus,
 } from "./inventory.types";
 import styles from "./inventory-dashboard.module.css";
+import { PurchaseAssistant } from "./purchase-assistant";
 
 const statusLabels: Record<InventoryStatus, string> = {
   "not-tracked": "Not tracked",
@@ -80,6 +81,8 @@ export function InventoryDashboard({
   warning,
   costWarning,
   generatedAt,
+  currencyCode,
+  salesAvailable,
 }: InventoryDashboardData) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<InventoryStatus | "all">("all");
@@ -91,8 +94,9 @@ export function InventoryDashboard({
 
   return (
     <s-page heading="StockPulse inventory">
+      <PurchaseAssistant rows={rows} currencyCode={currencyCode} costWarning={costWarning} salesAvailable={salesAvailable} generatedAt={generatedAt} />
       <s-section>
-        <s-stack direction="block" gap="base">
+        <section aria-label="Inventory list"><s-stack direction="block" gap="base">
           <s-heading>Inventory health at a glance</s-heading>
           <p className={styles.intro}>
             Prioritize stock using observed 30-day sales. Dead stock requires a
@@ -101,7 +105,6 @@ export function InventoryDashboard({
           </p>
 
           {warning ? <s-banner tone="warning">{warning}</s-banner> : null}
-          {costWarning ? <s-banner tone="warning">{costWarning}</s-banner> : null}
 
           <div className={styles.summaryGrid}>
             <SummaryCard value={summary.tracked} label="tracked variants" />
@@ -195,7 +198,7 @@ export function InventoryDashboard({
             Reorder recommendations are advisory and never change Shopify
             inventory.
           </p>
-        </s-stack>
+        </s-stack></section>
       </s-section>
     </s-page>
   );

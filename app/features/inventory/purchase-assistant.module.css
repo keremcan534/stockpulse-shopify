@@ -1,0 +1,22 @@
+.workspace { display: grid; min-inline-size: 0; gap: 1rem; margin-block-end: 1rem; }
+.card { min-inline-size: 0; border: 1px solid #d2d5d8; border-radius: 0.5rem; padding: 1rem; background: #fff; }
+.card h2 { margin: 0 0 0.5rem; font-size: 1.1rem; }
+.card p { margin-block: 0.4rem; }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 0.75rem; margin-block: 0.75rem; }
+.field { display: grid; gap: 0.25rem; font-weight: 600; }
+.field input { box-sizing: border-box; min-width: 0; padding: 0.45rem; border: 1px solid #8c9196; border-radius: 0.25rem; font: inherit; }
+.summaryGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 0.6rem; margin-block: 0.75rem; }
+.summaryGrid div { padding: 0.65rem; border-radius: 0.25rem; background: #f6f6f7; }
+.summaryGrid strong, .summaryGrid span { display: block; }
+.tableScroll { min-inline-size: 0; max-width: 100%; overflow-x: auto; }
+.table { width: 100%; min-width: 52rem; border-collapse: collapse; font-size: 0.9rem; }
+.comparisonTable { min-width: 28rem; }
+.table th, .table td { padding: 0.55rem; border-bottom: 1px solid #dfe3e8; text-align: left; vertical-align: top; }
+.table td input { width: 5rem; }
+.table small { display: block; color: #616161; }
+.excluded { margin-block-start: 0.75rem; }
+.excluded li { margin-block: 0.35rem; }
+.notice { color: #614700; background: #fff5ea; padding: 0.6rem; border-radius: 0.25rem; }
+.errors { color: #8e1f0b; }
+.muted, .emptyCopy { color: #616161; }
+.summaryLine { font-size: 1rem; }
