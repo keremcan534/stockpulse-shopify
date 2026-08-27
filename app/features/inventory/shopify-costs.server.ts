@@ -35,24 +35,39 @@ function requireCostsConnection(value: unknown) {
   };
 }
 
-function normalizeUnitCost(value: unknown): CatalogVariant["unitCost"] {
+function normalizeUnitCost(
+  value: unknown,
+  shopCurrencyCode: string | null,
+): CatalogVariant["unitCost"] {
   if (
     typeof value !== "object" ||
     value === null ||
     typeof (value as { amount?: unknown }).amount !== "string" ||
-    typeof (value as { currencyCode?: unknown }).currencyCode !== "string"
+    typeof (value as { currencyCode?: unknown }).currencyCode !== "string" ||
+    shopCurrencyCode === null
+  ) {
+    return null;
+  }
+
+  const amount = (value as { amount: string }).amount;
+  const currencyCode = (value as { currencyCode: string }).currencyCode;
+  if (
+    !/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(amount) ||
+    !Number.isFinite(Number(amount)) ||
+    currencyCode !== shopCurrencyCode
   ) {
     return null;
   }
 
   return {
-    amount: (value as { amount: string }).amount,
-    currencyCode: (value as { currencyCode: string }).currencyCode,
+    amount,
+    currencyCode,
   };
 }
 
 export async function loadShopifyUnitCosts(
   graphql: ShopifyGraphql,
+  shopCurrencyCode: string | null,
 ): Promise<Map<string, CatalogVariant["unitCost"]>> {
   const costs = new Map<string, CatalogVariant["unitCost"]>();
   const cursors = new Set<string>();
@@ -69,7 +84,10 @@ export async function loadShopifyUnitCosts(
       if (typeof node?.id !== "string") {
         throw new Error("Invalid product variant cost record");
       }
-      costs.set(node.id, normalizeUnitCost(node.inventoryItem?.unitCost));
+      costs.set(
+        node.id,
+        normalizeUnitCost(node.inventoryItem?.unitCost, shopCurrencyCode),
+      );
     }
 
     if (!connection.pageInfo.hasNextPage) {

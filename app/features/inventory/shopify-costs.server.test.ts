@@ -138,4 +138,19 @@ describe("Shopify unit-cost loading", () => {
     expect(result.currencyCode).toBeNull();
     expect(result.catalog.map((variant) => variant.unitCost)).toEqual([null, null]);
   });
+
+  it("does not retain a nonnumeric amount or a cost in another shop currency", async () => {
+    const graphql = graphqlQueue([
+      catalogPage("USD"),
+      salesPage(),
+      costsPage([
+        { id: "variant-1", unitCost: { amount: "not-a-number", currencyCode: "USD" } },
+        { id: "variant-2", unitCost: { amount: "3.00", currencyCode: "EUR" } },
+      ]),
+    ]);
+
+    const result = await loadShopifyInventory(graphql, NOW);
+
+    expect(result.catalog.map((variant) => variant.unitCost)).toEqual([null, null]);
+  });
 });

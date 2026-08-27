@@ -385,7 +385,7 @@ export async function loadShopifyInventory(
   }
 
   try {
-    const costs = await loadShopifyUnitCosts(graphql);
+    const costs = await loadShopifyUnitCosts(graphql, currencyCode);
     for (const variant of catalog) {
       variant.unitCost = costs.get(variant.variantId) ?? null;
     }

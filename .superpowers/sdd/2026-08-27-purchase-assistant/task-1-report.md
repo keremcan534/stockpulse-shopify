@@ -73,3 +73,29 @@ Result: 5 test files passed; 52 tests passed.
 ## Concerns
 
 None. The cost permission itself is store-role dependent; the implementation deliberately degrades to the fixed safe warning when Shopify denies or otherwise fails that optional read.
+
+## Follow-up fix — cost boundary validation
+
+Review identified that unit costs had only string-shape validation and were not checked against the shop currency. The cost loader now accepts only finite, nonnegative decimal amount strings and only retains a cost whose currency exactly matches the nullable shop currency. Missing/invalid shop currency, malformed amounts, and mismatched currencies are represented as unknown (`null`), with no conversion.
+
+### RED
+
+Command:
+
+```text
+npm test -- app/features/inventory/shopify-costs.server.test.ts
+```
+
+Result: 1 test file failed; 1 test failed and 4 passed. The new test received `{ amount: "not-a-number", currencyCode: "USD" }` and `{ amount: "3.00", currencyCode: "EUR" }` from a USD shop and proved both were incorrectly retained.
+
+### GREEN
+
+Command:
+
+```text
+npm test -- app/features/inventory/shopify-costs.server.test.ts app/features/inventory/shopify-inventory.server.test.ts
+```
+
+Result: 2 test files passed; 16 tests passed.
+
+`npm run typecheck` also passed after the fix.
