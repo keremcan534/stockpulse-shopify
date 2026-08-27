@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { loadShopifyInventory } from "./shopify-inventory.server";
+import {
+  loadShopifyInventory,
+  type ShopifyGraphql,
+} from "./shopify-inventory.server";
 
 const NOW = new Date("2026-08-27T12:00:00.000Z");
 
@@ -68,10 +71,7 @@ function costsPage(
 }
 
 function graphqlQueue(bodies: Array<unknown | Response>) {
-  const graphql = vi.fn(async (
-    _query: string,
-    _options?: { variables?: Record<string, unknown> },
-  ) => {
+  const graphql = vi.fn<ShopifyGraphql>(async () => {
     const next = bodies.shift();
     if (next === undefined) throw new Error("Unexpected GraphQL call");
     return next instanceof Response ? next : response(next);
