@@ -148,6 +148,26 @@ describe("PurchaseAssistant", () => {
     expect(screen.getByText(/New items need at least 60 days/)).toBeInTheDocument();
   });
 
+  it("identifies multi-unit no-sales variants and distinguishes unit from extended cost", () => {
+    render(<PurchaseAssistant {...fixture} rows={[
+      { ...rows[0], units30Days: 0, units60Days: 0, availableInventory: 10, unitCost: { amount: "2.00", currencyCode: "USD" } },
+      { ...rows[0], variantId: "old-blue-large", variantTitle: "Large", sku: "BLUE-L", units30Days: 0, units60Days: 0, availableInventory: 3, unitCost: { amount: "7.00", currencyCode: "USD" } },
+    ]} />);
+
+    const noSalesCard = screen.getByRole("heading", { name: "Cost in no-sales stock" }).parentElement!;
+    const variants = within(noSalesCard).getAllByRole("listitem");
+    expect(variants[0]).toHaveTextContent("Old blue shirt — Medium · BLUE-M (10 units): Unit cost: $2.00 USD; Extended total: $20.00 USD");
+    expect(variants[1]).toHaveTextContent("Old blue shirt — Large · BLUE-L (3 units): Unit cost: $7.00 USD; Extended total: $21.00 USD");
+  });
+
+  it("shows a currency-formatted zero when sales are available but no no-sales variants qualify", () => {
+    render(<PurchaseAssistant {...fixture} rows={[{ ...rows[0], createdAt: "2026-08-20T00:00:00.000Z", units30Days: 0, units60Days: 0 }]} />);
+
+    const noSalesCard = screen.getByRole("heading", { name: "Cost in no-sales stock" }).parentElement!;
+    expect(noSalesCard).toHaveTextContent("Current cost: $0.00 USD");
+    expect(noSalesCard).toHaveTextContent("No qualifying no-sales stock");
+  });
+
   it("explains the empty buying list when observed sales are zero", () => {
     render(<PurchaseAssistant {...fixture} rows={[{ ...rows[0], units30Days: 0, units60Days: 0 }]} />);
 

@@ -8,7 +8,14 @@ export function NoSalesStock({ summary }: { summary: NoSalesStockSummary }) {
   }
 
   if (summary.qualifyingVariants === 0) {
-    return <p className={styles.emptyCopy}>No qualifying no-sales stock. New items need at least 60 days of known age before this check applies.</p>;
+    return (
+      <>
+        <p className={styles.summaryLine}>
+          Current cost: <strong>{formatMoneyMinor(0, summary.currencyCode)} {summary.currencyCode ?? ""}</strong>
+        </p>
+        <p className={styles.emptyCopy}>No qualifying no-sales stock. New items need at least 60 days of known age before this check applies.</p>
+      </>
+    );
   }
 
   return (
@@ -24,7 +31,7 @@ export function NoSalesStock({ summary }: { summary: NoSalesStockSummary }) {
         <ul>
           {summary.rows.map((row) => (
             <li key={row.variantId}>
-              <strong>{row.productTitle}</strong> ({row.units} units): {formatMoneyMinor(row.costMinor, summary.currencyCode)} {summary.currencyCode ?? ""}
+              <strong>{row.productTitle}</strong> — {row.variantTitle} · {row.sku ?? "SKU not provided"} ({row.units} units): Unit cost: {formatMoneyMinor(row.costMinor, summary.currencyCode)} {summary.currencyCode ?? ""}; Extended total: {formatMoneyMinor(row.costMinor === null ? null : row.costMinor * row.units, summary.currencyCode)} {summary.currencyCode ?? ""}
             </li>
           ))}
         </ul>
