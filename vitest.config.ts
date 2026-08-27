@@ -5,7 +5,12 @@ export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
     environment: "jsdom",
-    exclude: [...configDefaults.exclude, ".react-router/**"],
+    exclude: [
+      ...configDefaults.exclude,
+      ".react-router/**",
+      ".worktrees/**",
+      "worktrees/**",
+    ],
     globals: true,
     passWithNoTests: true,
   },
