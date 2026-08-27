@@ -5,12 +5,15 @@ import {
   filterInventoryRows,
   sortInventoryRows,
   summarizeInventory,
+  variantAgeDays,
 } from "./inventory-metrics";
 import type {
   CatalogVariant,
   InventoryRow,
   InventoryStatus,
 } from "./inventory.types";
+
+const NOW = new Date("2026-08-27T12:00:00.000Z");
 
 function catalogVariant(
   availableInventory: number,
@@ -23,6 +26,10 @@ function catalogVariant(
     sku: "BLUE-M",
     tracked: true,
     availableInventory,
+    createdAt: "2026-06-01T12:00:00.000Z",
+    productStatus: "ACTIVE",
+    isGiftCard: false,
+    unitCost: null,
     ...overrides,
   };
 }
@@ -97,6 +104,7 @@ describe("calculateInventoryRows", () => {
         },
       ],
       true,
+      NOW,
     );
 
     expect(row.status).toBe(expected.status);
@@ -109,6 +117,7 @@ describe("calculateInventoryRows", () => {
       [catalogVariant(5)],
       [{ variantId: "gid://shopify/ProductVariant/1", units30Days: 1, units60Days: 1 }],
       true,
+      NOW,
     );
 
     expect(row.averageDailySales).toBeCloseTo(1 / 30);
@@ -120,6 +129,7 @@ describe("calculateInventoryRows", () => {
       [catalogVariant(0)],
       [{ variantId: "gid://shopify/ProductVariant/1", units30Days: 1, units60Days: 1 }],
       true,
+      NOW,
     );
 
     expect(row.reorderQuantity).toBe(1);
@@ -130,6 +140,7 @@ describe("calculateInventoryRows", () => {
       [catalogVariant(-2)],
       [{ variantId: "gid://shopify/ProductVariant/1", units30Days: 3, units60Days: 3 }],
       true,
+      NOW,
     );
 
     expect(row.status).toBe("out-of-stock");
@@ -153,6 +164,7 @@ describe("calculateInventoryRows", () => {
           units60Days: units,
         }],
         true,
+        NOW,
       );
 
       expect(row.reorderQuantity).toBe(expected);
@@ -160,7 +172,7 @@ describe("calculateInventoryRows", () => {
   );
 
   it("marks sales-derived values unavailable when sales history failed", () => {
-    const [row] = calculateInventoryRows([catalogVariant(9)], [], false);
+    const [row] = calculateInventoryRows([catalogVariant(9)], [], false, NOW);
 
     expect(row).toMatchObject({
       units30Days: null,
@@ -168,12 +180,12 @@ describe("calculateInventoryRows", () => {
       averageDailySales: null,
       daysOfStock: null,
       reorderQuantity: null,
-      status: "healthy",
+      status: "unavailable",
     });
   });
 
   it("preserves out-of-stock status when sales history failed", () => {
-    const [row] = calculateInventoryRows([catalogVariant(0)], [], false);
+    const [row] = calculateInventoryRows([catalogVariant(0)], [], false, NOW);
 
     expect(row.status).toBe("out-of-stock");
     expect(row.daysOfStock).toBeNull();
@@ -184,11 +196,88 @@ describe("calculateInventoryRows", () => {
       [catalogVariant(0, { tracked: false })],
       [{ variantId: "gid://shopify/ProductVariant/1", units30Days: 30, units60Days: 60 }],
       true,
+      NOW,
     );
 
     expect(row.status).toBe("not-tracked");
     expect(row.daysOfStock).toBeNull();
     expect(row.reorderQuantity).toBe(0);
+  });
+
+  it("uses known age to distinguish insufficient history from dead stock", () => {
+    const young = catalogVariant(8, {
+      createdAt: "2026-06-29T12:00:00.000Z",
+    });
+    const old = catalogVariant(8, {
+      createdAt: "2026-06-28T12:00:00.000Z",
+    });
+
+    expect(calculateInventoryRows([young], [], true, NOW)[0]).toMatchObject({
+      status: "insufficient-history",
+      averageDailySales: 0,
+      daysOfStock: null,
+      reorderQuantity: 0,
+    });
+    expect(calculateInventoryRows([old], [], true, NOW)[0].status).toBe(
+      "dead-stock",
+    );
+  });
+
+  it("hides estimates for variants younger than 30 days or with unknown age", () => {
+    const young = catalogVariant(8, {
+      createdAt: "2026-08-17T12:00:00.000Z",
+    });
+    const unknown = catalogVariant(8, { createdAt: null });
+    const sales = [
+      { variantId: young.variantId, units30Days: 6, units60Days: 6 },
+    ];
+
+    expect(calculateInventoryRows([young], sales, true, NOW)[0]).toMatchObject({
+      averageDailySales: null,
+      daysOfStock: null,
+      reorderQuantity: null,
+    });
+    expect(calculateInventoryRows([unknown], sales, true, NOW)[0]).toMatchObject({
+      averageDailySales: null,
+      daysOfStock: null,
+      reorderQuantity: null,
+    });
+  });
+
+  it("keeps stock-state precedence without estimates for young or unknown variants", () => {
+    const youngOutOfStock = catalogVariant(0, {
+      createdAt: "2026-08-17T12:00:00.000Z",
+    });
+    const unknownUntracked = catalogVariant(8, {
+      createdAt: null,
+      tracked: false,
+    });
+    const sales = [
+      {
+        variantId: youngOutOfStock.variantId,
+        units30Days: 6,
+        units60Days: 6,
+      },
+    ];
+
+    expect(calculateInventoryRows([youngOutOfStock], sales, true, NOW)[0]).toMatchObject({
+      status: "out-of-stock",
+      averageDailySales: null,
+      daysOfStock: null,
+      reorderQuantity: null,
+    });
+    expect(calculateInventoryRows([unknownUntracked], sales, true, NOW)[0]).toMatchObject({
+      status: "not-tracked",
+      averageDailySales: null,
+      daysOfStock: null,
+      reorderQuantity: null,
+    });
+  });
+
+  it("returns no age for an invalid current time", () => {
+    expect(
+      variantAgeDays("2026-08-01T12:00:00.000Z", new Date("invalid")),
+    ).toBeNull();
   });
 });
 

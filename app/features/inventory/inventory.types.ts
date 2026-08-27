@@ -2,6 +2,8 @@ export type InventoryStatus =
   | "not-tracked"
   | "out-of-stock"
   | "dead-stock"
+  | "insufficient-history"
+  | "unavailable"
   | "low-stock"
   | "healthy";
 
@@ -12,6 +14,10 @@ export interface CatalogVariant {
   sku: string | null;
   tracked: boolean;
   availableInventory: number;
+  createdAt: string | null;
+  productStatus: string | null;
+  isGiftCard: boolean | null;
+  unitCost: { amount: string; currencyCode: string } | null;
 }
 
 export interface VariantSales {
@@ -44,5 +50,8 @@ export interface InventoryDashboardData {
   rows: InventoryRow[];
   summary: InventorySummary;
   warning: string | null;
+  costWarning: string | null;
+  currencyCode: string | null;
+  salesAvailable: boolean;
   generatedAt: string;
 }

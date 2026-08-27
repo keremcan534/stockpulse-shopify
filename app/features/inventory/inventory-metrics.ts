@@ -15,22 +15,43 @@ const statusOrder: Record<InventoryStatus, number> = {
   "out-of-stock": 0,
   "low-stock": 1,
   "dead-stock": 2,
-  healthy: 3,
-  "not-tracked": 4,
+  "insufficient-history": 3,
+  unavailable: 4,
+  healthy: 5,
+  "not-tracked": 6,
 };
+
+const DAY_IN_MILLISECONDS = 86_400_000;
+
+export function variantAgeDays(createdAt: string | null, now: Date): number | null {
+  if (!createdAt) return null;
+  const createdAtTime = new Date(createdAt).getTime();
+  const nowTime = now.getTime();
+  if (
+    Number.isNaN(createdAtTime) ||
+    Number.isNaN(nowTime) ||
+    createdAtTime > nowTime
+  ) return null;
+  return (nowTime - createdAtTime) / DAY_IN_MILLISECONDS;
+}
 
 function getTrackedStatus(
   availableInventory: number,
   units60Days: number,
   averageDailySales: number,
   daysOfStock: number | null,
+  ageDays: number | null,
 ): InventoryStatus {
   if (availableInventory <= 0) {
     return "out-of-stock";
   }
 
-  if (units60Days === 0) {
+  if (units60Days === 0 && ageDays !== null && ageDays >= 60) {
     return "dead-stock";
+  }
+
+  if (ageDays === null || ageDays < 30 || units60Days === 0) {
+    return "insufficient-history";
   }
 
   if (
@@ -48,6 +69,7 @@ export function calculateInventoryRows(
   catalog: CatalogVariant[],
   sales: VariantSales[],
   salesAvailable: boolean,
+  now: Date,
 ): InventoryRow[] {
   const salesByVariant = new Map(
     sales.map((record) => [record.variantId, record]),
@@ -66,13 +88,41 @@ export function calculateInventoryRows(
           ? "not-tracked"
           : variant.availableInventory <= 0
             ? "out-of-stock"
-            : "healthy",
+            : "unavailable",
       };
     }
 
     const salesRecord = salesByVariant.get(variant.variantId);
     const units30Days = salesRecord?.units30Days ?? 0;
     const units60Days = salesRecord?.units60Days ?? 0;
+    const ageDays = variantAgeDays(variant.createdAt, now);
+    const hasEnoughHistory = ageDays !== null && ageDays >= 30;
+    if (!hasEnoughHistory) {
+      return {
+        ...variant,
+        units30Days,
+        units60Days,
+        averageDailySales: null,
+        daysOfStock: null,
+        reorderQuantity: null,
+        status: !variant.tracked
+          ? "not-tracked"
+          : variant.availableInventory <= 0
+            ? "out-of-stock"
+            : "insufficient-history",
+      };
+    }
+    if (!variant.tracked) {
+      return {
+        ...variant,
+        units30Days,
+        units60Days,
+        averageDailySales: units30Days / SALES_WINDOW_DAYS,
+        daysOfStock: null,
+        reorderQuantity: 0,
+        status: "not-tracked",
+      };
+    }
     const averageDailySales = units30Days / SALES_WINDOW_DAYS;
     const daysOfStock = !variant.tracked
       ? null
@@ -104,6 +154,7 @@ export function calculateInventoryRows(
             units60Days,
             averageDailySales,
             daysOfStock,
+            ageDays,
           )
         : "not-tracked",
     };

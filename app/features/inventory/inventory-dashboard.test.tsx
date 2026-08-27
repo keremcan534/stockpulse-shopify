@@ -16,6 +16,10 @@ const rows: InventoryRow[] = [
     sku: "BLUE-M",
     tracked: true,
     availableInventory: 4,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    productStatus: "ACTIVE",
+    isGiftCard: false,
+    unitCost: null,
     units30Days: 30,
     units60Days: 45,
     averageDailySales: 1,
@@ -30,6 +34,10 @@ const rows: InventoryRow[] = [
     sku: "CAP-OLD",
     tracked: true,
     availableInventory: 8,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    productStatus: "ACTIVE",
+    isGiftCard: false,
+    unitCost: null,
     units30Days: 0,
     units60Days: 0,
     averageDailySales: 0,
@@ -47,6 +55,9 @@ function renderDashboard(
       rows={rows}
       summary={{ tracked: 2, lowOrOut: 1, dead: 1 }}
       warning={null}
+      costWarning={null}
+      currencyCode="USD"
+      salesAvailable={true}
       generatedAt="2026-08-26T09:00:00.000Z"
       {...overrides}
     />,

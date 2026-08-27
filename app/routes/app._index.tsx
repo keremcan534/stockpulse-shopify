@@ -24,6 +24,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       inventory.catalog,
       inventory.sales,
       inventory.salesAvailable,
+      now,
     ),
   );
 
@@ -31,6 +32,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     rows,
     summary: summarizeInventory(rows),
     warning: inventory.warning,
+    costWarning: inventory.costWarning,
+    currencyCode: inventory.currencyCode,
+    salesAvailable: inventory.salesAvailable,
     generatedAt: now.toISOString(),
   };
 };

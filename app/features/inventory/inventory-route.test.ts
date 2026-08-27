@@ -45,6 +45,10 @@ describe("inventory dashboard loader", () => {
           sku: "HEALTHY",
           tracked: true,
           availableInventory: 40,
+          createdAt: "2020-01-01T00:00:00.000Z",
+          productStatus: "ACTIVE",
+          isGiftCard: false,
+          unitCost: null,
         },
         {
           variantId: "low",
@@ -53,6 +57,10 @@ describe("inventory dashboard loader", () => {
           sku: "LOW",
           tracked: true,
           availableInventory: 4,
+          createdAt: "2020-01-01T00:00:00.000Z",
+          productStatus: "ACTIVE",
+          isGiftCard: false,
+          unitCost: null,
         },
       ],
       sales: [
@@ -61,6 +69,8 @@ describe("inventory dashboard loader", () => {
       ],
       salesAvailable: true,
       warning: null,
+      currencyCode: "USD",
+      costWarning: null,
     });
   });
 

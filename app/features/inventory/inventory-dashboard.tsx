@@ -11,6 +11,8 @@ const statusLabels: Record<InventoryStatus, string> = {
   "not-tracked": "Not tracked",
   "out-of-stock": "Out of stock",
   "dead-stock": "Dead stock",
+  "insufficient-history": "Insufficient history",
+  unavailable: "Sales unavailable",
   "low-stock": "Low stock",
   healthy: "Healthy",
 };
@@ -22,6 +24,8 @@ const statusTones: Record<
   "not-tracked": "neutral",
   "out-of-stock": "critical",
   "dead-stock": "warning",
+  "insufficient-history": "caution",
+  unavailable: "neutral",
   "low-stock": "caution",
   healthy: "success",
 };
@@ -74,6 +78,7 @@ export function InventoryDashboard({
   rows,
   summary,
   warning,
+  costWarning,
   generatedAt,
 }: InventoryDashboardData) {
   const [query, setQuery] = useState("");
@@ -90,12 +95,13 @@ export function InventoryDashboard({
         <s-stack direction="block" gap="base">
           <s-heading>Inventory health at a glance</s-heading>
           <p className={styles.intro}>
-            Prioritize stock using the last 30 days of sales. Dead stock uses a
-            60-day no-sales window, and reorder quantities target 30 days of
-            coverage.
+            Prioritize stock using observed 30-day sales. Dead stock requires a
+            known age of at least 60 days and no observed sales; variants without
+            enough age history do not receive estimates.
           </p>
 
           {warning ? <s-banner tone="warning">{warning}</s-banner> : null}
+          {costWarning ? <s-banner tone="warning">{costWarning}</s-banner> : null}
 
           <div className={styles.summaryGrid}>
             <SummaryCard value={summary.tracked} label="tracked variants" />
@@ -130,6 +136,8 @@ export function InventoryDashboard({
                 <option value="low-stock">Low stock</option>
                 <option value="out-of-stock">Out of stock</option>
                 <option value="dead-stock">Dead stock</option>
+                <option value="insufficient-history">Insufficient history</option>
+                <option value="unavailable">Sales unavailable</option>
                 <option value="healthy">Healthy</option>
                 <option value="not-tracked">Not tracked</option>
               </select>

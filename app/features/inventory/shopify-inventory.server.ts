@@ -1,20 +1,21 @@
 import type { CatalogVariant, VariantSales } from "./inventory.types";
+import { loadShopifyUnitCosts } from "./shopify-costs.server";
+import {
+  executeGraphql,
+  requirePageInfo,
+  type PageInfo,
+  type ShopifyGraphql,
+} from "./shopify-graphql.server";
 
-export type ShopifyGraphql = (
-  query: string,
-  options?: { variables?: Record<string, unknown> },
-) => Promise<Response>;
+export type { ShopifyGraphql } from "./shopify-graphql.server";
 
 export interface ShopifyInventoryResult {
   catalog: CatalogVariant[];
   sales: VariantSales[];
   salesAvailable: boolean;
   warning: string | null;
-}
-
-interface PageInfo {
-  hasNextPage: boolean;
-  endCursor: string | null;
+  currencyCode: string | null;
+  costWarning: string | null;
 }
 
 interface CatalogNode {
@@ -23,7 +24,8 @@ interface CatalogNode {
   sku: string | null;
   inventoryQuantity: number;
   inventoryItem: { tracked: boolean };
-  product: { title: string };
+  createdAt?: unknown;
+  product: { title: string; status?: unknown; isGiftCard?: unknown };
 }
 
 interface LineItemNode {
@@ -43,17 +45,10 @@ interface OrderNode {
   lineItems: LineItemsConnection;
 }
 
-interface GraphqlError {
-  message?: string;
-}
-
-interface GraphqlEnvelope<T> {
-  data?: T;
-  errors?: GraphqlError[];
-}
-
 const SALES_WARNING =
   "Sales history is temporarily unavailable. Sales-based metrics are hidden.";
+const COST_WARNING =
+  "Unit costs are temporarily unavailable. Cost-based planning is hidden.";
 const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
 
 const CATALOG_QUERY = `#graphql
@@ -64,17 +59,23 @@ const CATALOG_QUERY = `#graphql
         title
         sku
         inventoryQuantity
+        createdAt
         inventoryItem {
           tracked
         }
         product {
           title
+          status
+          isGiftCard
         }
       }
       pageInfo {
         hasNextPage
         endCursor
       }
+    }
+    shop {
+      currencyCode
     }
   }
 `;
@@ -126,72 +127,6 @@ const ORDER_LINE_ITEMS_QUERY = `#graphql
   }
 `;
 
-function throwShopifyResponse(response: Response): never {
-  if (
-    response.status < 400 ||
-    response.status === 401 ||
-    response.headers.has("X-Shopify-API-Request-Failure-Reauthorize-Url") ||
-    response.headers.has("X-Shopify-Retry-Invalid-Session-Request")
-  ) {
-    throw response;
-  }
-
-  throw new Error(`Shopify GraphQL request failed (${response.status})`);
-}
-
-async function executeGraphql<T>(
-  graphql: ShopifyGraphql,
-  query: string,
-  variables: Record<string, unknown>,
-): Promise<T> {
-  let response: Response;
-  try {
-    response = await graphql(query, { variables });
-  } catch (error) {
-    if (error instanceof Response) {
-      throwShopifyResponse(error);
-    }
-    throw error;
-  }
-  if (!response.ok) {
-    throwShopifyResponse(response);
-  }
-
-  const envelope = (await response.json()) as GraphqlEnvelope<T>;
-  if (envelope.errors?.length) {
-    throw new Error(
-      envelope.errors
-        .map((error) => error.message ?? "Unknown Shopify GraphQL error")
-        .join("; "),
-    );
-  }
-  if (envelope.data === undefined) {
-    throw new Error("Shopify GraphQL response did not include data");
-  }
-
-  return envelope.data;
-}
-
-function requirePageInfo(value: unknown, context: string): PageInfo {
-  if (
-    typeof value !== "object" ||
-    value === null ||
-    typeof (value as PageInfo).hasNextPage !== "boolean" ||
-    !(
-      typeof (value as PageInfo).endCursor === "string" ||
-      (value as PageInfo).endCursor === null
-    )
-  ) {
-    throw new Error(`Invalid ${context} page info`);
-  }
-
-  const pageInfo = value as PageInfo;
-  if (pageInfo.hasNextPage && pageInfo.endCursor === null) {
-    throw new Error(`Invalid ${context} page cursor`);
-  }
-  return pageInfo;
-}
-
 function requireCatalogConnection(value: unknown) {
   if (
     typeof value !== "object" ||
@@ -208,12 +143,20 @@ function requireCatalogConnection(value: unknown) {
   };
 }
 
+function normalizeCreatedAt(value: unknown): string | null {
+  if (typeof value !== "string" || Number.isNaN(new Date(value).getTime())) {
+    return null;
+  }
+  return value;
+}
+
 function normalizeCatalogNode(node: CatalogNode): CatalogVariant {
   if (
     typeof node?.id !== "string" ||
     typeof node.title !== "string" ||
     !(typeof node.sku === "string" || node.sku === null) ||
     typeof node.inventoryQuantity !== "number" ||
+    !Number.isFinite(node.inventoryQuantity) ||
     typeof node.inventoryItem?.tracked !== "boolean" ||
     typeof node.product?.title !== "string"
   ) {
@@ -227,29 +170,43 @@ function normalizeCatalogNode(node: CatalogNode): CatalogVariant {
     sku: node.sku,
     tracked: node.inventoryItem.tracked,
     availableInventory: node.inventoryQuantity,
+    createdAt: normalizeCreatedAt(node.createdAt),
+    productStatus: typeof node.product.status === "string"
+      ? node.product.status
+      : null,
+    isGiftCard: typeof node.product.isGiftCard === "boolean"
+      ? node.product.isGiftCard
+      : null,
+    unitCost: null,
   };
 }
 
 async function loadCatalog(
   graphql: ShopifyGraphql,
-): Promise<CatalogVariant[]> {
+): Promise<{ catalog: CatalogVariant[]; currencyCode: string | null }> {
   const catalog: CatalogVariant[] = [];
+  let currencyCode: string | null = null;
   let after: string | null = null;
 
   do {
-    const data: { productVariants?: unknown } = await executeGraphql(
+    const data: { productVariants?: unknown; shop?: { currencyCode?: unknown } | null } = await executeGraphql(
       graphql,
       CATALOG_QUERY,
       { after },
     );
     const connection = requireCatalogConnection(data.productVariants);
     catalog.push(...connection.nodes.map(normalizeCatalogNode));
+    if (catalog.length === connection.nodes.length) {
+      currencyCode = typeof data.shop?.currencyCode === "string"
+        ? data.shop.currencyCode
+        : null;
+    }
     after = connection.pageInfo.hasNextPage
       ? connection.pageInfo.endCursor
       : null;
   } while (after !== null);
 
-  return catalog;
+  return { catalog, currencyCode };
 }
 
 function requireLineItemsConnection(value: unknown): LineItemsConnection {
@@ -409,25 +366,34 @@ export async function loadShopifyInventory(
   graphql: ShopifyGraphql,
   now: Date,
 ): Promise<ShopifyInventoryResult> {
-  const catalog = await loadCatalog(graphql);
+  const { catalog, currencyCode } = await loadCatalog(graphql);
 
+  let sales: VariantSales[];
+  let salesAvailable: boolean;
+  let warning: string | null;
   try {
-    const sales = await loadSales(graphql, now);
-    return {
-      catalog,
-      sales,
-      salesAvailable: true,
-      warning: null,
-    };
+    sales = await loadSales(graphql, now);
+    salesAvailable = true;
+    warning = null;
   } catch (error) {
     if (error instanceof Response) {
       throw error;
     }
-    return {
-      catalog,
-      sales: [],
-      salesAvailable: false,
-      warning: SALES_WARNING,
-    };
+    sales = [];
+    salesAvailable = false;
+    warning = SALES_WARNING;
+  }
+
+  try {
+    const costs = await loadShopifyUnitCosts(graphql);
+    for (const variant of catalog) {
+      variant.unitCost = costs.get(variant.variantId) ?? null;
+    }
+    return { catalog, sales, salesAvailable, warning, currencyCode, costWarning: null };
+  } catch (error) {
+    if (error instanceof Response) {
+      throw error;
+    }
+    return { catalog, sales, salesAvailable, warning, currencyCode, costWarning: COST_WARNING };
   }
 }

@@ -39,6 +39,9 @@ function catalogPage(
     inventoryQuantity?: number;
     tracked?: boolean;
     productTitle?: string;
+    createdAt?: string | null;
+    productStatus?: string | null;
+    isGiftCard?: boolean | null;
   }>,
   pageInfo = { hasNextPage: false, endCursor: null as string | null },
 ) {
@@ -51,10 +54,16 @@ function catalogPage(
           sku: node.sku ?? null,
           inventoryQuantity: node.inventoryQuantity ?? 0,
           inventoryItem: { tracked: node.tracked ?? true },
-          product: { title: node.productTitle ?? "Product" },
+          createdAt: node.createdAt ?? "2026-01-01T12:00:00.000Z",
+          product: {
+            title: node.productTitle ?? "Product",
+            status: node.productStatus ?? "ACTIVE",
+            isGiftCard: node.isGiftCard ?? false,
+          },
         })),
         pageInfo,
       },
+      shop: { currencyCode: "USD" },
     },
   };
 }
@@ -132,6 +141,10 @@ describe("loadShopifyInventory", () => {
         sku: "BLUE-M",
         tracked: true,
         availableInventory: 12,
+        createdAt: "2026-01-01T12:00:00.000Z",
+        productStatus: "ACTIVE",
+        isGiftCard: false,
+        unitCost: null,
       },
       {
         variantId: "variant-2",
@@ -140,8 +153,13 @@ describe("loadShopifyInventory", () => {
         sku: null,
         tracked: false,
         availableInventory: 4,
+        createdAt: "2026-01-01T12:00:00.000Z",
+        productStatus: "ACTIVE",
+        isGiftCard: false,
+        unitCost: null,
       },
     ]);
+    expect(result.currencyCode).toBe("USD");
     expect(calls.slice(0, 2).map((call) => call.variables.after)).toEqual([
       null,
       "catalog-page-2",
