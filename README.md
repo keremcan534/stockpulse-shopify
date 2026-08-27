@@ -59,6 +59,10 @@ npm install
 npm run setup
 ```
 
+The setup command safely creates the local SQLite file if it is missing,
+then generates Prisma Client and applies migrations. Existing session data
+is preserved.
+
 Link the project to an existing Shopify app or let the development command create/select one:
 
 ```bash
