@@ -61,6 +61,31 @@ describe("buildPurchasePlan", () => {
     expect(plan.remainingBudgetMinor).toBe(0);
   });
 
+  it("does not let a less urgent positive need displace the urgent demand", () => {
+    const plan = buildPurchasePlan(
+      [
+        row({ variantId: "urgent", availableInventory: 3 }),
+        row({ variantId: "later", availableInventory: 33 }),
+      ],
+      "USD",
+      INPUTS,
+      NOW,
+    );
+
+    expect(plan.rows[0]).toMatchObject({
+      need: 34,
+      quantity: 5,
+      action: "buy",
+      reason: expect.stringContaining("urgent"),
+    });
+    expect(plan.rows[1]).toMatchObject({
+      need: 4,
+      quantity: 0,
+      action: "defer",
+      reason: expect.stringContaining("budget"),
+    });
+  });
+
   it("uses scenario demand and delay with exact integer ceiling arithmetic", () => {
     const scenario = buildPurchasePlan(
       [row()],
@@ -145,6 +170,21 @@ describe("buildPurchasePlan", () => {
     const plan = buildPurchasePlan([item], "USD", inputs, NOW);
 
     expect(plan.rows[0]).toMatchObject({ quantity: 0, action });
+  });
+
+  it.each([
+    ["an archived product", row({ productStatus: "ARCHIVED" }), "Product is not active."],
+    ["an unknown product status", row({ productStatus: null }), "Product status is unknown."],
+    ["a gift card", row({ isGiftCard: true }), "Gift-card variants are not purchase candidates."],
+    ["an unknown creation date", row({ createdAt: null }), "Variant age is unknown or in the future."],
+  ] as const)("excludes %s with an explicit reason", (_name, item, reason) => {
+    const plan = buildPurchasePlan([item], "USD", INPUTS, NOW);
+
+    expect(plan.rows[0]).toMatchObject({
+      quantity: 0,
+      action: "check-data",
+      reason,
+    });
   });
 
   it("rejects invalid assumptions without allocating a purchase", () => {
