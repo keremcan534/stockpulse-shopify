@@ -97,6 +97,42 @@ describe("PurchaseAssistant", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("exceed the purchase budget");
   });
 
+  it("rejects invalid numeric input without creating a download", async () => {
+    const user = userEvent.setup();
+    const BlobConstructor = Blob;
+    const blob = vi.fn(function (this: Blob, parts?: BlobPart[], options?: BlobPropertyBag) {
+      return new BlobConstructor(parts, options);
+    });
+    const createObjectURL = vi.fn();
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+    vi.stubGlobal("Blob", blob);
+    vi.stubGlobal("URL", { createObjectURL });
+    render(<PurchaseAssistant {...fixture} />);
+    const exportButton = screen.getByRole("button", { name: "Download buying list CSV" });
+
+    await user.clear(screen.getByLabelText("Lead time (days)"));
+    await user.type(screen.getByLabelText("Lead time (days)"), "one");
+    await user.click(exportButton);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Lead time must be a whole number");
+    expect(exportButton).toBeDisabled();
+    expect(blob).not.toHaveBeenCalled();
+    expect(createObjectURL).not.toHaveBeenCalled();
+    expect(click).not.toHaveBeenCalled();
+  });
+
+  it("updates selected totals when an editable quantity changes", async () => {
+    const user = userEvent.setup();
+    render(<PurchaseAssistant {...fixture} />);
+
+    await user.clear(screen.getByLabelText(/Selected quantity for Old blue shirt/));
+    await user.type(screen.getByLabelText(/Selected quantity for Old blue shirt/), "1");
+
+    const planner = within(screen.getByRole("heading", { name: "Purchase planner" }).parentElement!);
+    expect(planner.getByText("Selected cost").parentElement).toHaveTextContent("$5.00 USD");
+    expect(planner.getByText("Remaining budget").parentElement).toHaveTextContent("$995.00 USD");
+  });
+
   it("shows missing-cost coverage for qualifying no-sales stock", () => {
     render(<PurchaseAssistant {...fixture} rows={[{ ...rows[0], units30Days: 0, units60Days: 0, unitCost: null }]} costWarning="Cost access is unavailable." />);
 
@@ -110,6 +146,21 @@ describe("PurchaseAssistant", () => {
     render(<PurchaseAssistant {...fixture} rows={[{ ...rows[0], createdAt: "2026-08-20T00:00:00.000Z", units30Days: 0, units60Days: 0 }]} />);
 
     expect(screen.getByText(/New items need at least 60 days/)).toBeInTheDocument();
+  });
+
+  it("explains the empty buying list when observed sales are zero", () => {
+    render(<PurchaseAssistant {...fixture} rows={[{ ...rows[0], units30Days: 0, units60Days: 0 }]} />);
+
+    expect(screen.getByText(/No buying suggestions are available/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Selected quantity/)).not.toBeInTheDocument();
+  });
+
+  it("keeps normal null sales data out of purchase quantities", () => {
+    render(<PurchaseAssistant {...fixture} rows={[{ ...rows[0], units30Days: null, units60Days: null }]} />);
+
+    expect(screen.getByText("Old blue shirt")).toBeInTheDocument();
+    expect(screen.getByText(/30-day sales data is unavailable/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Selected quantity/)).not.toBeInTheDocument();
   });
 
   it("keeps stale sales rows inspectable but never calculates quantities when sales are unavailable", () => {
@@ -130,8 +181,11 @@ describe("PurchaseAssistant", () => {
       return objectUrl;
     });
     const revokeObjectURL = vi.fn();
-    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
-    Object.assign(URL, { createObjectURL, revokeObjectURL });
+    const downloads: string[] = [];
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      downloads.push(this.download);
+    });
+    vi.stubGlobal("URL", { createObjectURL, revokeObjectURL });
     render(<PurchaseAssistant {...fixture} />);
 
     await user.click(screen.getByRole("button", { name: "Download buying list CSV" }));
@@ -146,8 +200,12 @@ describe("PurchaseAssistant", () => {
     });
     expect(contents).toContain('"BLUE-M"');
     expect(click).toHaveBeenCalledOnce();
+    expect(downloads).toEqual(["stockpulse-buying-list.csv"]);
     expect(revokeObjectURL).toHaveBeenCalledWith(objectUrl);
   });
 
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
 });

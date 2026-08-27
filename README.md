@@ -22,7 +22,7 @@ StockPulse calculates every metric at the product-variant level:
 - **Days of stock:** available inventory divided by average daily sales. It is shown as `—` when a stocked variant has no sales velocity.
 - **Low stock:** a tracked variant with 14 or fewer days of stock.
 - **Out of stock:** a tracked variant with zero or negative available inventory.
-- **Dead stock:** a tracked variant with positive inventory and no net units sold in the previous 60 days.
+- **Dead stock:** a tracked variant with positive inventory, at least 60 days of known age, and no net units sold in the previous 60 days.
 - **Reorder recommendation:** the whole-unit quantity needed to reach 30 days of inventory at the current sales velocity.
 
 The recommendation is informational. StockPulse never changes products, orders, or inventory.
