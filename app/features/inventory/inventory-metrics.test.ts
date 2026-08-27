@@ -137,6 +137,28 @@ describe("calculateInventoryRows", () => {
     expect(row.reorderQuantity).toBe(5);
   });
 
+  it.each([
+    { units: 31, inventory: 0, expected: 31 },
+    { units: 31, inventory: 31, expected: 0 },
+    { units: 62, inventory: 0, expected: 62 },
+    { units: 62, inventory: 62, expected: 0 },
+  ])(
+    "does not add a phantom unit for $units sales and $inventory inventory",
+    ({ units, inventory, expected }) => {
+      const [row] = calculateInventoryRows(
+        [catalogVariant(inventory)],
+        [{
+          variantId: "gid://shopify/ProductVariant/1",
+          units30Days: units,
+          units60Days: units,
+        }],
+        true,
+      );
+
+      expect(row.reorderQuantity).toBe(expected);
+    },
+  );
+
   it("marks sales-derived values unavailable when sales history failed", () => {
     const [row] = calculateInventoryRows([catalogVariant(9)], [], false);
 

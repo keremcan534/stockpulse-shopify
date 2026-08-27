@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { loadShopifyInventory } from "./shopify-inventory.server";
 
@@ -268,6 +268,45 @@ describe("loadShopifyInventory", () => {
 
     expect(result.catalog).toHaveLength(1);
     expect(result.sales).toEqual([]);
+    expect(result.salesAvailable).toBe(false);
+    expect(result.warning).toBe(
+      "Sales history is temporarily unavailable. Sales-based metrics are hidden.",
+    );
+  });
+
+  it.each([200, 302, 401])(
+    "preserves Shopify authentication control-flow responses with status %s",
+    async (status) => {
+      const authResponse = new Response("authentication flow", {
+        status,
+        headers: status === 302 ? { Location: "/auth" } : {},
+      });
+      const graphql = vi.fn()
+        .mockResolvedValueOnce(response(catalogPage([{ id: "variant-1" }])))
+        .mockRejectedValueOnce(authResponse);
+
+      await expect(loadShopifyInventory(graphql, NOW)).rejects.toBe(authResponse);
+    },
+  );
+
+  it("sanitizes thrown upstream catalog HTTP failures", async () => {
+    const graphql = vi.fn().mockRejectedValue(
+      new Response("private upstream detail", { status: 503 }),
+    );
+
+    await expect(loadShopifyInventory(graphql, NOW)).rejects.toThrow(
+      "Shopify GraphQL request failed (503)",
+    );
+  });
+
+  it("still returns partial data for thrown upstream sales HTTP failures", async () => {
+    const graphql = vi.fn()
+      .mockResolvedValueOnce(response(catalogPage([{ id: "variant-1" }])))
+      .mockRejectedValueOnce(new Response("upstream failure", { status: 503 }));
+
+    const result = await loadShopifyInventory(graphql, NOW);
+
+    expect(result.catalog).toHaveLength(1);
     expect(result.salesAvailable).toBe(false);
     expect(result.warning).toBe(
       "Sales history is temporarily unavailable. Sales-based metrics are hidden.",

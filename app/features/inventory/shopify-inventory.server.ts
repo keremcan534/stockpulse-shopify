@@ -126,14 +126,35 @@ const ORDER_LINE_ITEMS_QUERY = `#graphql
   }
 `;
 
+function throwShopifyResponse(response: Response): never {
+  if (
+    response.status < 400 ||
+    response.status === 401 ||
+    response.headers.has("X-Shopify-API-Request-Failure-Reauthorize-Url") ||
+    response.headers.has("X-Shopify-Retry-Invalid-Session-Request")
+  ) {
+    throw response;
+  }
+
+  throw new Error(`Shopify GraphQL request failed (${response.status})`);
+}
+
 async function executeGraphql<T>(
   graphql: ShopifyGraphql,
   query: string,
   variables: Record<string, unknown>,
 ): Promise<T> {
-  const response = await graphql(query, { variables });
+  let response: Response;
+  try {
+    response = await graphql(query, { variables });
+  } catch (error) {
+    if (error instanceof Response) {
+      throwShopifyResponse(error);
+    }
+    throw error;
+  }
   if (!response.ok) {
-    throw new Error(`Shopify GraphQL request failed (${response.status})`);
+    throwShopifyResponse(response);
   }
 
   const envelope = (await response.json()) as GraphqlEnvelope<T>;
@@ -398,7 +419,10 @@ export async function loadShopifyInventory(
       salesAvailable: true,
       warning: null,
     };
-  } catch {
+  } catch (error) {
+    if (error instanceof Response) {
+      throw error;
+    }
     return {
       catalog,
       sales: [],

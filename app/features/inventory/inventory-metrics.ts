@@ -86,7 +86,7 @@ export function calculateInventoryRows(
       : Math.max(
           0,
           Math.ceil(
-            averageDailySales * REORDER_TARGET_DAYS -
+            units30Days * (REORDER_TARGET_DAYS / SALES_WINDOW_DAYS) -
               variant.availableInventory,
           ),
         );

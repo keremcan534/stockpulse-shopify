@@ -32,6 +32,9 @@ jobs:
       - name: Run ESLint
         run: npm run lint
 
+      - name: Run tests
+        run: npm test
+
       - name: Validate Prisma
         run: npx prisma generate && npx prisma validate
 

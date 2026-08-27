@@ -44,7 +44,10 @@ export default function Index() {
 export function ErrorBoundary() {
   const error = useRouteError();
 
-  if (isRouteErrorResponse(error)) {
+  if (
+    isRouteErrorResponse(error) &&
+    (error.status < 400 || error.status === 401)
+  ) {
     return boundary.error(error);
   }
 
