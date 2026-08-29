@@ -40,6 +40,7 @@ beforeEach(async () => {
   await writeFile(
     preloadPath,
     [
+      'import { syncBuiltinESMExports } from "node:module";',
       'import http from "node:http";',
       'import https from "node:https";',
       'import net from "node:net";',
@@ -53,6 +54,7 @@ beforeEach(async () => {
       'net.connect = blocked("net.connect");',
       'net.createConnection = blocked("net.createConnection");',
       'tls.connect = blocked("tls.connect");',
+      "syncBuiltinESMExports();",
     ].join("\n"),
   );
 });
@@ -61,11 +63,11 @@ afterEach(async () => {
   await rm(temp, { recursive: true, force: true });
 });
 
-function cli(args) {
+function nodeChild(args) {
   return new Promise((resolve, reject) => {
     const child = spawn(
       process.execPath,
-      ["--import", pathToFileURL(preloadPath).href, cliPath, ...args],
+      ["--import", pathToFileURL(preloadPath).href, ...args],
       {
         cwd: temp,
         env: { ...process.env, OUTREACH_STATE_PATH: statePath },
@@ -87,6 +89,10 @@ function cli(args) {
   });
 }
 
+function cli(args) {
+  return nodeChild([cliPath, ...args]);
+}
+
 async function addCandidateAndDraft() {
   expect((await cli(["candidate", "add", "--input", inputPath])).status).toBe(0);
   expect(
@@ -99,6 +105,16 @@ it("exposes the outreach CLI through the package script", async () => {
   expect(packageJson.scripts.outreach).toBe(
     "node scripts/outreach/outreach-cli.mjs",
   );
+});
+
+it("blocks network APIs imported as named Node builtin exports", async () => {
+  const result = await nodeChild([
+    "--input-type=module",
+    "--eval",
+    'import { request } from "node:http"; request();',
+  ]);
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain("NETWORK I/O BLOCKED: http.request");
 });
 
 it("adds a candidate from a JSON file without echoing contact data", async () => {
@@ -224,4 +240,28 @@ it("uses safe exit codes and messages for invalid input and corrupt storage", as
   expect(corrupt.stderr).toMatch(/corrupt state json/i);
   expect(corrupt.stderr).not.toContain("private and corrupt");
   expect(corrupt.stderr).not.toContain("at ");
+});
+
+it("classifies semantically corrupt persisted state as a sanitized storage failure", async () => {
+  await writeFile(
+    statePath,
+    JSON.stringify({
+      version: 1,
+      candidates: [
+        {
+          code: "P01",
+          replyLabels: null,
+          privateNote: "do not expose this persisted value",
+        },
+      ],
+      messages: [],
+      suppressions: [],
+    }),
+  );
+
+  const result = await cli(["summary"]);
+  expect(result.status).toBe(1);
+  expect(result.stderr).toMatch(/corrupt state data/i);
+  expect(result.stderr).not.toContain("do not expose this persisted value");
+  expect(result.stderr).not.toContain("at ");
 });

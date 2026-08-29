@@ -1,6 +1,7 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import process from "node:process";
 import { afterEach, expect, it } from "vitest";
 import { EMPTY_STATE } from "./outreach-domain.mjs";
 import {
@@ -17,6 +18,19 @@ const state = {
   candidates: [],
   messages: [],
   suppressions: [],
+};
+const candidate = {
+  code: "P01",
+  businessName: "Saatadam",
+  businessDomain: "smartsaat.com",
+  sourceUrl: "https://evidence.example.test/shopify",
+  rationale: "Public catalogue shows multiple stock states.",
+  targetRole: "Founder",
+  channelSourceUrl: "https://contact.example.test/business",
+  status: "active",
+  createdAt: "2026-08-31T09:00:00.000Z",
+  updatedAt: "2026-08-31T09:00:00.000Z",
+  replyLabels: [],
 };
 
 afterEach(async () => {
@@ -60,12 +74,26 @@ it("rejects corrupt JSON and unsupported schema versions without overwriting", a
   expect(await readFile(file, "utf8")).toBe(unsupported);
 });
 
+it("rejects semantically corrupt persisted entities without exposing their contents", async () => {
+  const corrupt = JSON.stringify({
+    version: 1,
+    candidates: [{ code: "P01", replyLabels: null, privateNote: "do not expose" }],
+    messages: [],
+    suppressions: [],
+  });
+  await mkdir(temp, { recursive: true });
+  await writeFile(file, corrupt);
+
+  await expect(loadState(file)).rejects.toThrow("corrupt state data");
+  expect(await readFile(file, "utf8")).toBe(corrupt);
+});
+
 it("updates persisted state through the supplied transform", async () => {
   const updated = await updateState(file, (current) => ({
     ...current,
-    candidates: [{ code: "P01" }],
+    candidates: [candidate],
   }));
 
-  expect(updated.candidates).toEqual([{ code: "P01" }]);
+  expect(updated.candidates).toEqual([candidate]);
   expect(await loadState(file)).toEqual(updated);
 });
