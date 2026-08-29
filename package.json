@@ -19,7 +19,8 @@
     "vite": "vite",
     "typecheck": "react-router typegen && tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "outreach": "node scripts/outreach/outreach-cli.mjs"
   },
   "type": "module",
   "engines": {
