@@ -1,0 +1,16 @@
+.page {
+  box-sizing: border-box;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  font-family: system-ui, sans-serif;
+  color: #202b2a;
+  line-height: 1.55;
+}
+.nav { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 32px; }
+.page a { color: #166452; text-underline-offset: 3px; }
+.eyebrow { color: #166452; font-size: 12px; font-weight: 700; letter-spacing: .1em; }
+.page h1 { font-size: clamp(28px, 5vw, 42px); line-height: 1.15; }
+.notice { padding: 16px; border: 1px solid #bad8ce; background: #eff8f4; border-radius: 8px; }
+.page footer { border-top: 1px solid #d7dfdc; padding-top: 20px; margin-top: 32px; color: #53645f; }
+@media (max-width: 600px) { .page { padding: 16px; } }

@@ -21,10 +21,16 @@ export default function App() {
   return (
     <div className={styles.index}>
       <div className={styles.content}>
-        <h1 className={styles.heading}>A short heading about [your app]</h1>
+        <h1 className={styles.heading}>StockPulse: know what to restock next</h1>
         <p className={styles.text}>
-          A tagline about [your app] that describes your value proposition.
+          Review low stock, days of stock, and a buying list that fits your budget.
+          A read-only Shopify inventory assistant in private pilot development.
         </p>
+        <nav aria-label="Product preview">
+          <a href="/demo">Try the sample demo</a>{" · "}
+          <a href="/privacy">Data use</a>
+        </nav>
+        <p>No account or payment is needed for the sample demo. Store login below is for an already configured development installation.</p>
         {showForm && (
           <Form className={styles.form} method="post" action="/auth/login">
             <label className={styles.label}>
@@ -39,16 +45,16 @@ export default function App() {
         )}
         <ul className={styles.list}>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>Spot stock risks</strong>. Review low-stock and out-of-stock
+            variants with coverage estimates based on observed sales.
           </li>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>Plan within a budget</strong>. Adjust quantities, compare
+            delivery-delay scenarios, and export a buying list for review.
           </li>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>Review no-sales stock</strong>. See current costs in older
+            stocked variants with no observed sales. No automatic orders or inventory changes.
           </li>
         </ul>
       </div>
