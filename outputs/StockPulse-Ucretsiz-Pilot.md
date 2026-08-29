@@ -106,6 +106,8 @@ Bu eşikler erken sinyaldir; gelir, yatırım veya ürün-pazar uyumu garantisi 
 
 Otomasyonun görevi aday kaydı oluşturmak, kamuya açık işletme bilgisinden kısa kişiselleştirme hazırlamak, mesaj taslağı üretmek, takip tarihini hesaplamak ve yanıtları sınıflandırmak olacaktır.
 
+Kuru çalışma komutları ve operatör adımları için docs/outreach-operator-runbook.md dosyasını kullanın.
+
 Her gerçek gönderimden önce Kerem alıcıyı, kanalı ve mesajın son halini tek tek onaylar. İlk sürüm:
 
 - toplu gönderim yapmaz;

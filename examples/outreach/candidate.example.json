@@ -1,0 +1,9 @@
+{
+  "code": "P99",
+  "businessName": "Example Inventory Store",
+  "storeDomain": "https://example-inventory-store.test",
+  "sourceUrl": "https://example.test/shopify-evidence",
+  "rationale": "Public catalogue shows multiple physical variants and stock states.",
+  "targetRole": "Inventory owner",
+  "channelSourceUrl": "https://example.test/business-contact"
+}
