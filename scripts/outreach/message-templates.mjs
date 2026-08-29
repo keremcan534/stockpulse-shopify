@@ -14,6 +14,9 @@ function businessName(candidate) {
   if (typeof candidate?.businessName !== "string" || !candidate.businessName.trim()) {
     throw new Error("candidate businessName must be non-empty");
   }
+  if (/\r|\n/.test(candidate.businessName)) {
+    throw new Error("candidate businessName must not contain a line break");
+  }
   return candidate.businessName.trim();
 }
 

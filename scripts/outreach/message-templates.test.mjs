@@ -43,3 +43,9 @@ it("rejects a rationale containing a line break", () => {
     /line break/i,
   );
 });
+
+it("rejects a business name containing a line break", () => {
+  expect(() => initialMessage({ ...candidate, businessName: "Saatadam\r\nBcc: injected" })).toThrow(
+    /line break/i,
+  );
+});
