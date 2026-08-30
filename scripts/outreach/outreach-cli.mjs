@@ -10,11 +10,7 @@ import {
   recordSent,
   summary,
 } from "./outreach-domain.mjs";
-import {
-  loadState,
-  resolveStatePath,
-  saveState,
-} from "./outreach-store.mjs";
+import { loadState, resolveStatePath, saveState } from "./outreach-store.mjs";
 
 class InputError extends Error {}
 class StorageError extends Error {}
@@ -48,7 +44,9 @@ async function readState(filePath) {
   try {
     return await loadState(filePath);
   } catch (error) {
-    throw new StorageError(error instanceof Error ? error.message : "storage error");
+    throw new StorageError(
+      error instanceof Error ? error.message : "storage error",
+    );
   }
 }
 
@@ -56,7 +54,9 @@ async function writeState(filePath, state) {
   try {
     await saveState(filePath, state);
   } catch (error) {
-    throw new StorageError(error instanceof Error ? error.message : "storage error");
+    throw new StorageError(
+      error instanceof Error ? error.message : "storage error",
+    );
   }
 }
 
@@ -88,8 +88,11 @@ function findMessage(state, messageId) {
 }
 
 function findCandidate(state, candidateCode) {
-  const candidate = state.candidates.find((item) => item.code === candidateCode);
-  if (!candidate) throw new InputError(`candidate ${candidateCode} was not found`);
+  const candidate = state.candidates.find(
+    (item) => item.code === candidateCode,
+  );
+  if (!candidate)
+    throw new InputError(`candidate ${candidateCode} was not found`);
   return candidate;
 }
 
@@ -149,7 +152,9 @@ async function run(args, now) {
       },
     });
   } catch (error) {
-    throw new InputError(error instanceof Error ? error.message : "invalid input");
+    throw new InputError(
+      error instanceof Error ? error.message : "invalid input",
+    );
   }
 
   const { positionals, values } = parsed;
@@ -178,7 +183,9 @@ async function run(args, now) {
   if (positionals[0] === "approve") {
     assertShape(positionals, ["approve"], values, ["message"]);
     const messageId = requireOption(values, "message");
-    await changeState(filePath, (state) => approveMessage(state, messageId, now));
+    await changeState(filePath, (state) =>
+      approveMessage(state, messageId, now),
+    );
     process.stdout.write(`Approved message ${messageId}.\n`);
     return;
   }
@@ -188,10 +195,18 @@ async function run(args, now) {
     const messageId = requireOption(values, "message");
     const state = await readState(filePath);
     const message = findMessage(state, messageId);
+    const candidate = findCandidate(state, message.candidateCode);
+    const suppressed = state.suppressions.some(
+      (suppression) => suppression.businessDomain === candidate.businessDomain,
+    );
+    if (candidate.status !== "active" || suppressed) {
+      throw new InputError(
+        "candidate must be active and unsuppressed before preview",
+      );
+    }
     if (message.state !== "approved") {
       throw new InputError("message must be approved before preview");
     }
-    const candidate = findCandidate(state, message.candidateCode);
     process.stdout.write(
       [
         "DRY RUN — NOTHING SENT",
@@ -250,7 +265,6 @@ async function run(args, now) {
   if (positionals[0] === "summary") {
     assertShape(positionals, ["summary"], values);
     const state = await readState(filePath);
-    await writeState(filePath, state);
     printSummary(state);
     return;
   }

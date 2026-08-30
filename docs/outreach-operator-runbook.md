@@ -51,7 +51,8 @@ npm run outreach -- preview --message P01-initial
 
 The preview prints the candidate, channel-source URL, and exact rendered body
 locally. It is the final body review and is not transmission. If the sources or
-body are unsuitable, stop; there is no bulk approval command.
+body are unsuitable, stop before approving or recording a send. The CLI has no
+edit, reject, or cancel command, and there is no bulk approval command.
 
 ## 4. Send manually only after action-time approval and legal gates
 

@@ -76,16 +76,16 @@ import {
 const now = new Date("2026-08-31T09:00:00.000Z");
 const candidateInput = {
   code: "P01",
-  businessName: "Saatadam",
-  storeDomain: "https://SmartSaat.com/products/demo",
+  businessName: "Fictional Inventory Lab",
+  storeDomain: "https://WWW.Inventory-Lab.test./products/demo",
   sourceUrl: "https://evidence.example.test/shopify",
   rationale: "Public catalogue shows multiple stock states.",
-  targetRole: "Founder",
+  targetRole: "Inventory owner",
   channelSourceUrl: "https://contact.example.test/business",
 };
 
 it("normalizes a shop URL to a stable lower-case domain", () => {
-  expect(normalizeBusinessDomain(candidateInput.storeDomain)).toBe("smartsaat.com");
+  expect(normalizeBusinessDomain(candidateInput.storeDomain)).toBe("inventory-lab.test");
 });
 
 it("creates one draft per business and requires approval before sent", () => {
@@ -125,7 +125,7 @@ it("makes opt-out terminal and suppresses later drafts", () => {
   let state = createCandidate(EMPTY_STATE, candidateInput, now);
   state = recordReply(state, "P01", ["opt_out"], now);
   expect(state.suppressions).toEqual([{
-    businessDomain: "smartsaat.com",
+    businessDomain: "inventory-lab.test",
     createdAt: now.toISOString(),
     reason: "recipient_request",
   }]);
@@ -319,7 +319,7 @@ it("adds a candidate from a JSON file without echoing contact data", async () =>
   const result = await cli(["candidate", "add", "--input", inputPath]);
   expect(result.status).toBe(0);
   expect(result.stdout).toContain("P01");
-  expect(result.stdout).not.toContain("private@example.com");
+  expect(result.stdout).not.toContain("not-stored@contact.example.test");
 });
 
 it("refuses preview and record-sent before individual approval", async () => {
@@ -358,7 +358,7 @@ Use `parseArgs({ allowPositionals: true, options: { input, candidate, message, l
 
 ```text
 DRY RUN — NOTHING SENT
-Candidate: P01 — Saatadam
+Candidate: P01 — Fictional Inventory Lab
 Channel source: https://contact.example.test/business
 Message: P01-initial
 --- body ---

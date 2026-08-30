@@ -3,11 +3,11 @@ import { followupMessage, initialMessage } from "./message-templates.mjs";
 
 const candidate = {
   code: "P01",
-  businessName: "Saatadam",
-  businessDomain: "smartsaat.com",
+  businessName: "Fictional Inventory Lab",
+  businessDomain: "inventory-lab.test",
   sourceUrl: "https://evidence.example.test/shopify",
   rationale: "Public catalogue shows multiple stock states.",
-  targetRole: "Founder",
+  targetRole: "Inventory owner",
   channelSourceUrl: "https://contact.example.test/business",
   status: "active",
   createdAt: "2026-08-31T09:00:00.000Z",
@@ -28,7 +28,9 @@ it("personalizes with only the stored verified rationale", () => {
 });
 
 it("follow-up promises there will be no further message", () => {
-  expect(followupMessage(candidate)).toContain("bundan sonra tekrar yazmayacağım");
+  expect(followupMessage(candidate)).toContain(
+    "bundan sonra tekrar yazmayacağım",
+  );
 });
 
 it("trims and caps the verified rationale at 180 characters", () => {
@@ -39,13 +41,16 @@ it("trims and caps the verified rationale at 180 characters", () => {
 });
 
 it("rejects a rationale containing a line break", () => {
-  expect(() => initialMessage({ ...candidate, rationale: "safe\nunsafe" })).toThrow(
-    /line break/i,
-  );
+  expect(() =>
+    initialMessage({ ...candidate, rationale: "safe\nunsafe" }),
+  ).toThrow(/line break/i);
 });
 
 it("rejects a business name containing a line break", () => {
-  expect(() => initialMessage({ ...candidate, businessName: "Saatadam\r\nBcc: injected" })).toThrow(
-    /line break/i,
-  );
+  expect(() =>
+    initialMessage({
+      ...candidate,
+      businessName: "Fictional Lab\r\nBcc: injected",
+    }),
+  ).toThrow(/line break/i);
 });

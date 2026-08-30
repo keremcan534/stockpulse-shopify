@@ -15,11 +15,11 @@ Bu başlangıç değerleri başarısızlık değildir; henüz kimseye mesaj gön
 
 | Kod | İşletme | Hedef kişi/rol | Neden uygun olabilir? | Tercih edilen kamuya açık kanal |
 |---|---|---|---|---|
-| P01 | Smart Saat / Saatadam | Gökhan Oğuz Kaya, kurucu | Geniş ürün gamı; tükendi, üretimde ve ön sipariş durumları | Kurucunun LinkedIn profili |
-| P02 | KidZee | Gökçe Tanış, kurucu | Beden, sezon ve koleksiyon varyantları | Şirket LinkedIn sayfası |
-| P03 | SAF Nutrition | Tolga Tunçsav veya Can Aksüyek, kurucu | Fiziksel ürün, çoklu kanal ve büyüyen ürün gamı | Kurucu/şirket LinkedIn sayfası |
-| P04 | Mioji | E-ticaret veya operasyon sorumlusu | 100'den fazla ürün ve gözlenen tükenmiş ürünler | İşletmenin iletişim sayfası |
-| P05 | Mineralist Gümüş | Mağaza/e-ticaret sorumlusu | Çok varyantlı takı stoğu ve fiziksel mağaza | İşletmenin iletişim formu |
+| P01 | Fictional Watch Inventory Lab | Stok sahibi (kurgusal rol) | Geniş ürün gamı; tükendi, üretimde ve ön sipariş durumları | https://p01.example.test/contact |
+| P02 | Fictional Kidswear Stock Lab | Operasyon sorumlusu (kurgusal rol) | Beden, sezon ve koleksiyon varyantları | https://p02.example.test/contact |
+| P03 | Fictional Nutrition Shelf | Satın alma sorumlusu (kurgusal rol) | Fiziksel ürün, çoklu kanal ve büyüyen ürün gamı | https://p03.example.test/contact |
+| P04 | Fictional Home Goods Studio | E-ticaret sorumlusu (kurgusal rol) | 100'den fazla ürün ve kurgusal tükenmiş ürünler | https://p04.example.test/contact |
+| P05 | Fictional Jewelry Inventory | Mağaza sorumlusu (kurgusal rol) | Çok varyantlı takı stoğu ve kurgusal fiziksel mağaza | https://p05.example.test/contact |
 
 Kişi adı, özel e-posta, telefon ve gelen mesaj içeriği bu depoya yazılmaz. Takip tablosunda yalnız kod ve sınıflandırılmış sonuç tutulur.
 

@@ -10,13 +10,13 @@ const cliPath = path.resolve("scripts/outreach/outreach-cli.mjs");
 const packagePath = path.resolve("package.json");
 const candidateInput = {
   code: "P01",
-  businessName: "Saatadam",
-  storeDomain: "https://SmartSaat.com/products/demo",
+  businessName: "Fictional Inventory Lab",
+  storeDomain: "https://WWW.Inventory-Lab.test./products/demo",
   sourceUrl: "https://evidence.example.test/shopify",
   rationale: "Public catalogue shows multiple stock states.",
-  targetRole: "Founder",
+  targetRole: "Inventory owner",
   channelSourceUrl: "https://contact.example.test/business",
-  contactEmail: "private@example.com",
+  contactEmail: "not-stored@contact.example.test",
 };
 
 let temp;
@@ -94,10 +94,22 @@ function cli(args) {
 }
 
 async function addCandidateAndDraft() {
-  expect((await cli(["candidate", "add", "--input", inputPath])).status).toBe(0);
-  expect(
-    (await cli(["draft", "initial", "--candidate", "P01"])).status,
-  ).toBe(0);
+  expect((await cli(["candidate", "add", "--input", inputPath])).status).toBe(
+    0,
+  );
+  expect((await cli(["draft", "initial", "--candidate", "P01"])).status).toBe(
+    0,
+  );
+}
+
+async function backdateRecordedInitial() {
+  const state = JSON.parse(await readFile(statePath, "utf8"));
+  state.candidates[0].createdAt = "2020-01-01T08:00:00.000Z";
+  state.candidates[0].updatedAt = "2020-01-01T09:00:00.000Z";
+  state.messages[0].createdAt = "2020-01-01T08:30:00.000Z";
+  state.messages[0].approvedAt = "2020-01-01T08:45:00.000Z";
+  state.messages[0].sentAt = "2020-01-01T09:00:00.000Z";
+  await writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`);
 }
 
 it("exposes the outreach CLI through the package script", async () => {
@@ -121,8 +133,10 @@ it("adds a candidate from a JSON file without echoing contact data", async () =>
   const result = await cli(["candidate", "add", "--input", inputPath]);
   expect(result.status).toBe(0);
   expect(result.stdout).toContain("P01");
-  expect(result.stdout).not.toContain("private@example.com");
-  expect(await readFile(statePath, "utf8")).not.toContain("private@example.com");
+  expect(result.stdout).not.toContain("not-stored@contact.example.test");
+  expect(await readFile(statePath, "utf8")).not.toContain(
+    "not-stored@contact.example.test",
+  );
 });
 
 it("refuses preview and record-sent before individual approval", async () => {
@@ -139,9 +153,7 @@ it("refuses preview and record-sent before individual approval", async () => {
 
 it("prints only a dry-run envelope after individual approval", async () => {
   await addCandidateAndDraft();
-  expect(
-    (await cli(["approve", "--message", "P01-initial"])).status,
-  ).toBe(0);
+  expect((await cli(["approve", "--message", "P01-initial"])).status).toBe(0);
 
   const result = await cli(["preview", "--message", "P01-initial"]);
   expect(result.status).toBe(0);
@@ -149,11 +161,11 @@ it("prints only a dry-run envelope after individual approval", async () => {
   expect(result.stdout).toBe(
     [
       "DRY RUN — NOTHING SENT",
-      "Candidate: P01 — Saatadam",
+      "Candidate: P01 — Fictional Inventory Lab",
       "Channel source: https://contact.example.test/business",
       "Message: P01-initial",
       "--- body ---",
-      "Merhaba Saatadam,",
+      "Merhaba Fictional Inventory Lab,",
       "",
       "Public catalogue shows multiple stock states.",
       "",
@@ -180,8 +192,10 @@ it("records a manual send only after approval", async () => {
   );
 });
 
-it("records labels but never stores the raw reply", async () => {
-  expect((await cli(["candidate", "add", "--input", inputPath])).status).toBe(0);
+it("records labels after a send but never stores the raw reply", async () => {
+  await addCandidateAndDraft();
+  await cli(["approve", "--message", "P01-initial"]);
+  await cli(["record-sent", "--message", "P01-initial"]);
   const result = await cli([
     "reply",
     "--candidate",
@@ -202,9 +216,7 @@ it("creates due follow-ups and lists only operational queue fields", async () =>
   await addCandidateAndDraft();
   await cli(["approve", "--message", "P01-initial"]);
   await cli(["record-sent", "--message", "P01-initial"]);
-  const state = JSON.parse(await readFile(statePath, "utf8"));
-  state.messages[0].sentAt = "2020-01-01T09:00:00.000Z";
-  await writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`);
+  await backdateRecordedInitial();
 
   const followups = await cli(["followups", "create"]);
   expect(followups.status).toBe(0);
@@ -212,20 +224,60 @@ it("creates due follow-ups and lists only operational queue fields", async () =>
 
   const list = await cli(["list"]);
   expect(list.status).toBe(0);
-  expect(list.stdout).toContain("P01 — Saatadam — active");
+  expect(list.stdout).toContain("P01 — Fictional Inventory Lab — active");
   expect(list.stdout).toContain("P01-followup — draft");
-  expect(list.stdout).not.toContain("private@example.com");
+  expect(list.stdout).not.toContain("not-stored@contact.example.test");
+});
+
+it("requires separate approval before follow-up preview and record-sent", async () => {
+  await addCandidateAndDraft();
+  await cli(["approve", "--message", "P01-initial"]);
+  await cli(["record-sent", "--message", "P01-initial"]);
+  await backdateRecordedInitial();
+  expect((await cli(["followups", "create"])).status).toBe(0);
+
+  const preview = await cli(["preview", "--message", "P01-followup"]);
+  expect(preview.status).toBe(2);
+  expect(preview.stderr).toMatch(/must be approved/i);
+
+  const record = await cli(["record-sent", "--message", "P01-followup"]);
+  expect(record.status).toBe(2);
+  expect(record.stderr).toMatch(/must be approved/i);
+});
+
+it("blocks preview of an approved follow-up after a reply", async () => {
+  await addCandidateAndDraft();
+  await cli(["approve", "--message", "P01-initial"]);
+  await cli(["record-sent", "--message", "P01-initial"]);
+  await backdateRecordedInitial();
+  await cli(["followups", "create"]);
+  await cli(["approve", "--message", "P01-followup"]);
+
+  const reply = await cli([
+    "reply",
+    "--candidate",
+    "P01",
+    "--labels",
+    "meaningful_reply",
+  ]);
+  expect(reply.status).toBe(0);
+  expect(
+    JSON.parse(await readFile(statePath, "utf8")).messages.find(
+      (message) => message.id === "P01-followup",
+    ).state,
+  ).toBe("cancelled");
+
+  const preview = await cli(["preview", "--message", "P01-followup"]);
+  expect(preview.status).toBe(2);
+  expect(preview.stderr).toMatch(/active and unsuppressed/i);
 });
 
 it("renders zero denominators as not measured", async () => {
   const result = await cli(["summary"]);
   expect(result.status).toBe(0);
   expect(result.stdout).toContain("Response rate: not measured");
-  expect(JSON.parse(await readFile(statePath, "utf8"))).toEqual({
-    version: 1,
-    candidates: [],
-    messages: [],
-    suppressions: [],
+  await expect(readFile(statePath, "utf8")).rejects.toMatchObject({
+    code: "ENOENT",
   });
 });
 
